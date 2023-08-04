@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration(configuration: "")]
 [assembly: AssemblyCompany(company: "Viktor Nemeth")]
 [assembly: AssemblyProduct(product: "OfficeFileVersionUpdater")]
-[assembly: AssemblyCopyright(copyright: "MIT License - 2023")]
+[assembly: AssemblyCopyright(copyright: "Viktor Nemeth - MIT License - 2023")]
 [assembly: AssemblyTrademark(trademark: "")]
 [assembly: AssemblyCulture(culture: "")]
 
@@ -31,5 +31,4 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion(version: "1.0.0.0")]
-[assembly: AssemblyFileVersion(version: "1.0.0.0")]
+[assembly: AssemblyVersion("1.0.1")]

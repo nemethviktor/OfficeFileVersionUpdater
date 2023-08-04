@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using CommandLine;
 using Microsoft.Office.Core;
 using Microsoft.Office.Interop.Excel;
 using Microsoft.Office.Interop.PowerPoint;
@@ -12,11 +13,16 @@ namespace OfficeFileVersionUpdater;
 
 internal class Program
 {
+    private static string _folderToParse;
+
     private static void Main(string[] args)
     {
-        Console.WriteLine("\u001b[2J\u001b[3J"); // cls -> https://www.reddit.com/r/csharp/comments/k8flpr/comment/gextslz/?utm_source=share&utm_medium=web2x&context=3
+        Console.WriteLine(value: "\u001b[2J\u001b[3J"); // cls -> https://www.reddit.com/r/csharp/comments/k8flpr/comment/gextslz/?utm_source=share&utm_medium=web2x&context=3
         Console.Clear();
-        collateFiles(pathToScan: getPathToScan());
+
+        parseArgs(args: args);
+        collateFiles(folderToParse: _folderToParse);
+
         string officeVer = ProgramHelpers.GetOfficeVer(); // this is used for blacklist-clearing.
         string[] wordFiles, excelFiles, powerPointFiles;
         string newFileName = "";
@@ -295,41 +301,10 @@ internal class Program
             return File.GetLastWriteTime(path: fileToCheck);
         }
 
-        string getPathToScan()
+        void collateFiles(string folderToParse)
         {
-            string pathToScan = "C:\\temp\\";
-            switch (args.Length)
-            {
-                case 0:
-                    // nothing
-                    break;
-                case 1:
-                    pathToScan =
-                        args[0]
-                           .Replace(oldValue: "\"",
-                                    newValue: ""); // removes double quote - if the pathToScan has a space in it then args[0] comes through in odd ways.
-                    break;
-                default:
-                    Console.WriteLine(
-                        value: "Specify 0 or 1 count of folders to parse. Preferably 1, such as idk D:\\myfiles -- if you leave the arg blank it will default to " +
-                               pathToScan);
-                    Environment.Exit(exitCode: 1); // bye bye
-                    break;
-            }
-
-            if (!Directory.Exists(path: pathToScan))
-            {
-                Console.WriteLine(value: pathToScan + " does not exist.");
-                Environment.Exit(exitCode: 1); // bye bye
-            }
-
-            return pathToScan;
-        }
-
-        void collateFiles(string pathToScan)
-        {
-            Console.WriteLine(value: "Starting file collation in root of " + pathToScan);
-            wordFiles = Directory.EnumerateFiles(path: pathToScan, searchPattern: "*.*", searchOption: SearchOption.AllDirectories)
+            Console.WriteLine(value: "Starting file collation in root of " + folderToParse);
+            wordFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*", searchOption: SearchOption.AllDirectories)
                                  .Where(predicate: s => s.ToLower()
                                                          .EndsWith(value: ".doc") ||
                                                         s.ToLower()
@@ -341,7 +316,7 @@ internal class Program
 
             // Excel files don't seem to have versionings. They're either "old" or "new".
             // ...as such we don't need the x-files.
-            excelFiles = Directory.EnumerateFiles(path: pathToScan, searchPattern: "*.*", searchOption: SearchOption.AllDirectories)
+            excelFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*", searchOption: SearchOption.AllDirectories)
                                   .Where(predicate: s => s.ToLower()
                                                           .EndsWith(value: ".xls"))
                                   .ToArray();
@@ -349,7 +324,7 @@ internal class Program
 
             // PowerPoint files don't seem to have versionings. They're either "old" or "new".
             // ...as such we don't need the x-files.
-            powerPointFiles = Directory.EnumerateFiles(path: pathToScan, searchPattern: "*.*", searchOption: SearchOption.AllDirectories)
+            powerPointFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*", searchOption: SearchOption.AllDirectories)
                                        .Where(predicate: s => s.ToLower()
                                                                .EndsWith(value: ".ppt") ||
                                                               s.ToLower()
@@ -373,5 +348,33 @@ internal class Program
                                      " w/ TS " +
                                      lastModified.ToString(provider: CultureInfo.CurrentCulture));
         }
+    }
+
+    private static void parseArgs(string[] args)
+    {
+        Parser.Default.ParseArguments<Options>(args: args)
+              .WithParsed(action: o =>
+               {
+                   _folderToParse = o.folderToParse.Replace(oldValue: "\"", newValue: "");
+
+                   if (!Directory.Exists(path: _folderToParse))
+                   {
+                       Console.WriteLine(value: $"The path {_folderToParse} doesn't exist.");
+                       Environment.Exit(exitCode: 1); // bye bye
+                   }
+               });
+        if (string.IsNullOrWhiteSpace(value: _folderToParse))
+        {
+            Environment.Exit(exitCode: 1); // bye bye
+        }
+    }
+
+
+    public class Options
+    {
+        [Option(shortName: 'f', longName: "folderToParse", Required = true,
+                HelpText =
+                    "Folder to parse -- this is recursive so you only need to specify the top-level.")]
+        public string folderToParse { get; set; }
     }
 }
