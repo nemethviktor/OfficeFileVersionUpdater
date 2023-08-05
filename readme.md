@@ -5,10 +5,17 @@
 The script takes legacy-format Office files (Word/Excel/PowerPoint) and converts them to new-format files.
 The added bonus here is that we retain the old "last-write-time" timestamp. In other words, if your "2003_budget.xls" had a timestamp of idk 2003-01-01 12:27:00 then your new "2003_budget.xlsx" will also have the same TS.
 
+## System Requirements
+
+Although some DLL files are included in the release but you'll actually need a working version of Office 15+ (2013 that is. The relevant connector files between C# and Office are from the 2013 version, there aren't any newer ones as of 2023)
+Windows 7 or newer is also required.
+You'll obviously need to have access to your file passwords etc where applicable.
+
 ## Usage
 
-Run the executable with the `-f` parameter for the folder you want to parse, i.e., `OfficeFileVersionUpdater.exe -f C:\something` or use double quotes if your folder has spaces in its name such as `OfficeFileVersionUpdater.exe -f "C:\something something"`. 
-The script processes folders recursively so you are expected to have just one parameter.
+Download the zipped file from Releases (click Assets within, if you can't see it). 
+Unzip all files and run the `OfficeFileVersionUpdater.exe` executable with the `-f` parameter for the folder you want to parse, i.e., `OfficeFileVersionUpdater.exe -f C:\something` or use double quotes if your folder has spaces in its name such as `OfficeFileVersionUpdater.exe -f "C:\something something"`. 
+The script processes folders recursively so you only need to specify the root folder of your hierarchy.
 
 ## What this does not (do)
 
@@ -18,7 +25,7 @@ Also, the app won't update things like `PivotTableVersion` (not explicitly anywa
 
 ### Notes re Office (file) versions
 
-For the "x-files" (as in PPTX, XLSX, DOCX):
+For the "x-files..." (as in PPTX, XLSX, DOCX):
 
 - PowerPoint and Excel have no "compatibility mode". All PPTX/XLSX files are the same version. Due to this the code entirely ignores PPTX/PPTM/XLSX/XLSM files as there's no benefit to re-saving them.
 - DOCX files do have “compatibility mode" and therefore they _are_ processed. 
@@ -34,11 +41,6 @@ For the legacy file versions (non-x-files):
 
 If you happen to have some files saved by pre-release versions of Office 2007 (in particular Beta 1 and 2) then this app won't solve your problems. One is that as per above the script ignores PPTX/XLSX files entirely but that aside Post-Beta2-Office2007 apps are not capable of reading Beta1 & Beta2 files because they are not the same format. So, the app will try to command Word to open the DOCX (because we can't get the versioning flag without opening a file) but will fail (because Word can't read it if your file was saved in _not_ B2TR. Excel can't read even the B2TR files.).
 The best you can do is get a VM Windows 7 and a pre-release Office 2007 ISO from somewhere (message me) and then manually rebuild your files in a separate VM. 
-
-## What you need
-
-You'll need a working version of Office 15+ (2013 that is. The relevant connector files between C# and Office are from the 2013 version, there aren't any newer ones as of 2023)
-You'll obviously need to have access to your file passwords etc where applicable.
 
 ## Further notes
 
