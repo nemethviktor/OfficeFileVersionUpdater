@@ -5,7 +5,10 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle(title: "OfficeFileVersionUpdater")]
-[assembly: AssemblyDescription(description: "The script takes legacy-format Office files (Word/Excel/PowerPoint) and converts them to new-format files.")]
+[assembly:
+    AssemblyDescription(
+        description:
+        "The script takes legacy-format Office files (Word/Excel/PowerPoint) and converts them to new-format files.")]
 [assembly: AssemblyConfiguration(configuration: "")]
 [assembly: AssemblyCompany(company: "Viktor Nemeth")]
 [assembly: AssemblyProduct(product: "OfficeFileVersionUpdater")]
@@ -31,4 +34,4 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.1")]
+[assembly: AssemblyVersion(version: "1.0.3")]
