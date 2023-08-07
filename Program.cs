@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using CommandLine;
@@ -9,6 +11,7 @@ namespace OfficeFileVersionUpdater;
 internal class Program
 {
     private static string _folderToParse;
+    private static bool _skipWord, _skipExcel, _skipPowerPoint;
 
     private static void Main(string[] args)
     {
@@ -18,12 +21,12 @@ internal class Program
         Console.Clear();
 
         ParseArgs(args: args);
+        string[] wordFiles = { }, excelFiles = { }, powerPointFiles = { };
         CollateFiles(folderToParse: _folderToParse);
 
         string officeVer = ProgramHelpers.GetOfficeVer(); // this is used for blacklist-clearing.
-        string[] wordFiles, excelFiles, powerPointFiles;
 
-        if (wordFiles.Length > 0)
+        if (wordFiles.Length > 0 && !_skipWord)
         {
             Console.WriteLine(value: "Starting Word files...");
             ProgramHelpers.ClearBlackList(whichApp: "Word", officeVer: officeVer);
@@ -38,7 +41,7 @@ internal class Program
         }
 
 
-        if (excelFiles.Length > 0)
+        if (excelFiles.Length > 0 && !_skipExcel)
         {
             Console.WriteLine(value: "Starting Excel files...");
             ProgramHelpers.ClearBlackList(whichApp: "Excel", officeVer: officeVer);
@@ -53,7 +56,7 @@ internal class Program
         }
 
 
-        if (powerPointFiles.Length > 0)
+        if (powerPointFiles.Length > 0 && !_skipPowerPoint)
         {
             Console.WriteLine(value: "Starting PowerPoint files...");
             ProgramHelpers.ClearBlackList(whichApp: "PowerPoint", officeVer: officeVer);
@@ -74,42 +77,52 @@ internal class Program
 
         void CollateFiles(string folderToParse)
         {
-            Console.WriteLine(value: "Starting file collation in root of " + folderToParse);
-            wordFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
-                                      searchOption: SearchOption.AllDirectories)
-                                 .Where(predicate: s => s.ToLower()
-                                                         .EndsWith(value: ".doc") ||
-                                                        s.ToLower()
-                                                         .EndsWith(value: ".docx") ||
-                                                        s.ToLower()
-                                                         .EndsWith(value: ".docm"))
-                                 .ToArray();
-            Console.WriteLine(value: $"{wordFiles.Length} Word files.");
+            if (!_skipWord)
+            {
+                Console.WriteLine(value: "Starting file collation in root of " + folderToParse);
+                wordFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
+                                          searchOption: SearchOption.AllDirectories)
+                                     .Where(predicate: s => s.ToLower()
+                                                             .EndsWith(value: ".doc") ||
+                                                            s.ToLower()
+                                                             .EndsWith(value: ".docx") ||
+                                                            s.ToLower()
+                                                             .EndsWith(value: ".docm"))
+                                     .ToArray();
+                Console.WriteLine(value: $"{wordFiles.Length} Word files.");
+            }
 
             // Excel files don't seem to have versionings. They're either "old" or "new".
             // ...as such we don't need the x-files.
-            excelFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
-                                       searchOption: SearchOption.AllDirectories)
-                                  .Where(predicate: s => s.ToLower()
-                                                          .EndsWith(value: ".xls"))
-                                  .ToArray();
-            Console.WriteLine(value: $"{excelFiles.Length} Excel files.");
+            if (!_skipExcel)
+            {
+                excelFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
+                                           searchOption: SearchOption.AllDirectories)
+                                      .Where(predicate: s => s.ToLower()
+                                                              .EndsWith(value: ".xls"))
+                                      .ToArray();
+                Console.WriteLine(value: $"{excelFiles.Length} Excel files.");
+            }
 
             // PowerPoint files don't seem to have versionings. They're either "old" or "new".
             // ...as such we don't need the x-files.
-            powerPointFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
-                                            searchOption: SearchOption.AllDirectories)
-                                       .Where(predicate: s => s.ToLower()
-                                                               .EndsWith(value: ".ppt") ||
-                                                              s.ToLower()
-                                                               .EndsWith(value: ".pps"))
-                                       .ToArray();
-            Console.WriteLine(value: $"{powerPointFiles.Length} PowerPoint files.");
+            if (!_skipPowerPoint)
+            {
+                powerPointFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
+                                                searchOption: SearchOption.AllDirectories)
+                                           .Where(predicate: s => s.ToLower()
+                                                                   .EndsWith(value: ".ppt") ||
+                                                                  s.ToLower()
+                                                                   .EndsWith(value: ".pps"))
+                                           .ToArray();
+                Console.WriteLine(value: $"{powerPointFiles.Length} PowerPoint files.");
+            }
+
             Console.WriteLine(value: "File collation done.");
 
             if (wordFiles.Length + excelFiles.Length + powerPointFiles.Length == 0)
             {
-                Console.WriteLine(value: "Nothing to do. Exiting.");
+                Console.WriteLine(value: "Nothing to do.");
                 ProgramHelpers.ExitWithMessage(exitReason: ExitReasons.Ok);
             }
         }
@@ -122,16 +135,30 @@ internal class Program
     /// <param name="args"></param>
     private static void ParseArgs(string[] args)
     {
-        Parser.Default.ParseArguments<Options>(args: args)
-              .WithParsed(action: o =>
-               {
-                   _folderToParse = o.FolderToParse.Replace(oldValue: "\"", newValue: "");
+        Parser parser = new(configuration: settings => { settings.CaseSensitive = false; });
+        ParserResult<Options> parseResult = parser.ParseArguments<Options>(args: args)
+                                                  .WithParsed(action: o =>
+                                                       {
+                                                           _folderToParse =
+                                                               o.FolderToParse.Replace(oldValue: "\"", newValue: "");
 
-                   if (!Directory.Exists(path: _folderToParse))
-                       ProgramHelpers.ExitWithMessage(exitReason: ExitReasons.InvalidFolder);
-               });
+                                                           if (!Directory.Exists(path: _folderToParse))
+                                                               ProgramHelpers.ExitWithMessage(
+                                                                   exitReason: ExitReasons.InvalidFolder);
+
+                                                           _skipWord = o.SkipWord;
+                                                           _skipExcel = o.SkipExcel;
+                                                           _skipPowerPoint = o.SkipPowerPoint;
+                                                       }
+                                                   );
+        foreach (Error parseError in parseResult.Errors) Console.WriteLine(value: parseError);
         if (string.IsNullOrWhiteSpace(value: _folderToParse))
-            ProgramHelpers.ExitWithMessage(exitReason: ExitReasons.NoFolderPassed); // bye bye
+        {
+            ProgramHelpers.ExitWithMessage(exitReason: parseResult.Errors.Any()
+                ? ExitReasons.InvalidParametersSupplied
+                : ExitReasons.NoFolderPassed); // bye bye
+            // bye bye
+        }
     }
 
 
@@ -145,17 +172,28 @@ internal class Program
         InvalidFolder,
         WordNotInstalled,
         ExcelNotInstalled,
-        PowerpointNotInstalled
+        PowerpointNotInstalled,
+        InvalidParametersSupplied
     }
 
     /// <summary>
     ///     This is responsible for parsing the program arguments/parameters
     /// </summary>
-    internal class Options
+    [SuppressMessage(category: "ReSharper", checkId: "UnusedAutoPropertyAccessor.Local")]
+    private class Options
     {
         [Option(shortName: 'f', longName: "folderToParse", Required = true,
             HelpText =
-                "Folder to parse -- this is recursive so you only need to specify the top-level.")]
+                """Folder to parse -- this is recursive so you only need to specify the top-level. Use double-quotes if the folder name contains spaces (e.g. OfficeFileVersionUpdater.exe -f "C:\someting something")""")]
         public string FolderToParse { get; set; }
+
+        [Option(longName: "SkipWord", Required = false, HelpText = "Do NOT Parse Word files.")]
+        public bool SkipWord { get; set; }
+
+        [Option(longName: "SkipExcel", Required = false, HelpText = "Do NOT Parse Excel files.")]
+        public bool SkipExcel { get; set; }
+
+        [Option(longName: "SkipPowerPoint", Required = false, HelpText = "Do NOT Parse PowerPoint files.")]
+        public bool SkipPowerPoint { get; set; }
     }
 }
