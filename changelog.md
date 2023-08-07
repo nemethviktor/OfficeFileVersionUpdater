@@ -1,5 +1,13 @@
 # OfficeFileVersionUpdater Changelog
 
+**v1.0.4 [20230807]**
+- NEW & UPDATED:
+  - Extended the readme by quite a bit
+  - Added options for skipping the various Applications
+- BUGS & FIXES:
+  - N/A
+
+
 **v1.0.3 [20230805]**
 - NEW & UPDATED:
   - Rewrote the code to be more OOP. 

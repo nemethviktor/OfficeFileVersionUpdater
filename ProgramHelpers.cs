@@ -98,6 +98,9 @@ internal static class ProgramHelpers
             case ExitReasons.PowerpointNotInstalled:
                 Console.WriteLine(value: "Powerpoint installation not found.");
                 break;
+            case ExitReasons.InvalidParametersSupplied:
+                Console.WriteLine(value: "You've supplied invalid parameters.");
+                break;
         }
 
         Console.WriteLine(value: "Exiting.");
