@@ -17,114 +17,129 @@ internal class Program
     {
         Console.WriteLine(
             value:
-            "\u001b[2J\u001b[3J"); // cls -> https://www.reddit.com/r/csharp/comments/k8flpr/comment/gextslz/?utm_source=share&utm_medium=web2x&context=3
+            "[2J[3J"); // cls -> https://www.reddit.com/r/csharp/comments/k8flpr/comment/gextslz/?utm_source=share&utm_medium=web2x&context=3
         Console.Clear();
 
         ParseArgs(args: args);
-        string[] wordFiles = { }, excelFiles = { }, powerPointFiles = { };
-        CollateFiles(folderToParse: _folderToParse);
+        CollateFiles(folderToParse: _folderToParse, wordFiles: out List<string> wordFiles,
+            excelFiles: out List<string> excelFiles, powerPointFiles: out List<string> powerPointFiles);
 
         string officeVer = ProgramHelpers.GetOfficeVer(); // this is used for blacklist-clearing.
 
-        if (wordFiles.Length > 0 && !_skipWord)
+        if (wordFiles.Count > 0)
         {
             Console.WriteLine(value: "Starting Word files...");
             ProgramHelpers.ClearBlackList(whichApp: "Word", officeVer: officeVer);
             WordHandler wordUpdater = new();
             Application wordApp = wordUpdater.StartApp();
-
-            foreach (string wordFile in wordFiles)
-                wordUpdater.ProcessAndSaveFile(wordDoc: wordUpdater.OpenFile(fileNameWithPath: wordFile,
-                    wordApp: wordApp));
-
-            wordUpdater.QuitApp();
+            try
+            {
+                foreach (string wordFile in wordFiles)
+                {
+                    Document wordDoc = wordUpdater.OpenFile(fileNameWithPath: wordFile, wordApp: wordApp);
+                    if (wordDoc != null) wordUpdater.ProcessAndSaveFile(wordDoc: wordDoc);
+                }
+            }
+            finally
+            {
+                wordUpdater.QuitApp();
+            }
         }
 
-
-        if (excelFiles.Length > 0 && !_skipExcel)
+        if (excelFiles.Count > 0)
         {
             Console.WriteLine(value: "Starting Excel files...");
             ProgramHelpers.ClearBlackList(whichApp: "Excel", officeVer: officeVer);
             ExcelHandler excelUpdater = new();
             Microsoft.Office.Interop.Excel.Application excelApp = excelUpdater.StartApp();
-
-            foreach (string excelFile in excelFiles)
-                excelUpdater.ProcessAndSaveFile(excelWbk: excelUpdater.OpenFile(fileNameWithPath: excelFile,
-                    excelApp: excelApp));
-
-            excelUpdater.QuitApp();
+            try
+            {
+                foreach (string excelFile in excelFiles)
+                {
+                    Microsoft.Office.Interop.Excel.Workbook excelWbk =
+                        excelUpdater.OpenFile(fileNameWithPath: excelFile, excelApp: excelApp);
+                    if (excelWbk != null) excelUpdater.ProcessAndSaveFile(excelWbk: excelWbk);
+                }
+            }
+            finally
+            {
+                excelUpdater.QuitApp();
+            }
         }
 
-
-        if (powerPointFiles.Length > 0 && !_skipPowerPoint)
+        if (powerPointFiles.Count > 0)
         {
             Console.WriteLine(value: "Starting PowerPoint files...");
             ProgramHelpers.ClearBlackList(whichApp: "PowerPoint", officeVer: officeVer);
             PowerPointHandler powerPointUpdater = new();
             Microsoft.Office.Interop.PowerPoint.Application powerPointApp = powerPointUpdater.StartApp();
-
-            foreach (string powerPointFile in powerPointFiles)
-                powerPointUpdater.ProcessAndSaveFile(powerPointPres: powerPointUpdater.OpenFile(
-                    fileNameWithPath: powerPointFile,
-                    powerPointApp: powerPointApp));
-
-            powerPointUpdater.QuitApp();
+            try
+            {
+                foreach (string powerPointFile in powerPointFiles)
+                {
+                    Microsoft.Office.Interop.PowerPoint.Presentation powerPointPres =
+                        powerPointUpdater.OpenFile(fileNameWithPath: powerPointFile, powerPointApp: powerPointApp);
+                    if (powerPointPres != null) powerPointUpdater.ProcessAndSaveFile(powerPointPres: powerPointPres);
+                }
+            }
+            finally
+            {
+                powerPointUpdater.QuitApp();
+            }
         }
 
-
         ProgramHelpers.ExitWithMessage(exitReason: ExitReasons.Ok);
+    }
 
 
-        void CollateFiles(string folderToParse)
+    /// <summary>
+    ///     Walks the folder tree once and sorts the legacy-format files into per-app lists.
+    /// </summary>
+    private static void CollateFiles(string folderToParse,
+        out List<string> wordFiles,
+        out List<string> excelFiles,
+        out List<string> powerPointFiles)
+    {
+        Console.WriteLine(value: "Starting file collation in root of " + folderToParse);
+        wordFiles = new List<string>();
+        excelFiles = new List<string>();
+        powerPointFiles = new List<string>();
+
+        // Excel & PowerPoint files don't seem to have versionings. They're either "old" or "new".
+        // ...as such we don't need the x-files for those.
+        foreach (string file in Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
+                     searchOption: SearchOption.AllDirectories))
         {
-            if (!_skipWord)
-            {
-                Console.WriteLine(value: "Starting file collation in root of " + folderToParse);
-                wordFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
-                                          searchOption: SearchOption.AllDirectories)
-                                     .Where(predicate: s => s.ToLower()
-                                                             .EndsWith(value: ".doc") ||
-                                                            s.ToLower()
-                                                             .EndsWith(value: ".docx") ||
-                                                            s.ToLower()
-                                                             .EndsWith(value: ".docm"))
-                                     .ToArray();
-                Console.WriteLine(value: $"{wordFiles.Length} Word files.");
-            }
+            if (Path.GetFileName(path: file)
+                    .StartsWith(value: "~$", comparisonType: StringComparison.Ordinal)) // Office lock files
+                continue;
 
-            // Excel files don't seem to have versionings. They're either "old" or "new".
-            // ...as such we don't need the x-files.
-            if (!_skipExcel)
+            switch (Path.GetExtension(path: file).ToLowerInvariant())
             {
-                excelFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
-                                           searchOption: SearchOption.AllDirectories)
-                                      .Where(predicate: s => s.ToLower()
-                                                              .EndsWith(value: ".xls"))
-                                      .ToArray();
-                Console.WriteLine(value: $"{excelFiles.Length} Excel files.");
+                case ".doc":
+                case ".docx":
+                case ".docm":
+                    if (!_skipWord) wordFiles.Add(item: file);
+                    break;
+                case ".xls":
+                    if (!_skipExcel) excelFiles.Add(item: file);
+                    break;
+                case ".ppt":
+                case ".pps":
+                    if (!_skipPowerPoint) powerPointFiles.Add(item: file);
+                    break;
             }
+        }
 
-            // PowerPoint files don't seem to have versionings. They're either "old" or "new".
-            // ...as such we don't need the x-files.
-            if (!_skipPowerPoint)
-            {
-                powerPointFiles = Directory.EnumerateFiles(path: folderToParse, searchPattern: "*.*",
-                                                searchOption: SearchOption.AllDirectories)
-                                           .Where(predicate: s => s.ToLower()
-                                                                   .EndsWith(value: ".ppt") ||
-                                                                  s.ToLower()
-                                                                   .EndsWith(value: ".pps"))
-                                           .ToArray();
-                Console.WriteLine(value: $"{powerPointFiles.Length} PowerPoint files.");
-            }
+        if (!_skipWord) Console.WriteLine(value: $"{wordFiles.Count} Word files.");
+        if (!_skipExcel) Console.WriteLine(value: $"{excelFiles.Count} Excel files.");
+        if (!_skipPowerPoint) Console.WriteLine(value: $"{powerPointFiles.Count} PowerPoint files.");
+        Console.WriteLine(value: "File collation done.");
 
-            Console.WriteLine(value: "File collation done.");
-
-            if (wordFiles.Length + excelFiles.Length + powerPointFiles.Length == 0)
-            {
-                Console.WriteLine(value: "Nothing to do.");
-                ProgramHelpers.ExitWithMessage(exitReason: ExitReasons.Ok);
-            }
+        if (wordFiles.Count + excelFiles.Count + powerPointFiles.Count == 0)
+        {
+            Console.WriteLine(value: "Nothing to do.");
+            ProgramHelpers.ExitWithMessage(exitReason: ExitReasons.Ok);
         }
     }
 

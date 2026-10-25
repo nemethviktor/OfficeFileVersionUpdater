@@ -29,6 +29,10 @@ Parameters are not case sensitive and note that the "skips" have no shorthand ab
 
 The script processes folders recursively so you only need to specify the root folder of your hierarchy.
 
+## Building
+
+The legacy-style csproj needs full-framework MSBuild (`dotnet build` won't work), e.g. the one that ships with Visual Studio. Build output (`bin\` and `obj\`) goes to `%LOCALAPPDATA%\build\OfficeFileVersionUpdater\` (see `Directory.Build.props`) rather than the repo folder, so the executable is at `%LOCALAPPDATA%\build\OfficeFileVersionUpdater\bin\<Debug|Release>\OfficeFileVersionUpdater.exe`.
+
 ## System Requirements
 
 Although some DLL files are included in the release but you'll actually need a working version of Office 15+ (2013 that is. The relevant connector files between C# and Office are from the 2013 version, there aren't any newer ones as of 2023)
@@ -50,7 +54,7 @@ Also, the app won't update things like `PivotTableVersion` (not explicitly anywa
 ### TL;DR
 
 I've tested as far back as files saved by Office 4.3 in Windows 3.11 and those worked *when explicitly allowed in Trust Center*. Older files might be supported if they can be opened in Word/Excel/PowerPoint natively.
-The script parses .doc, .docx, .xls, .ppt and .pps files currently.
+The script parses .doc, .docx, .docm, .xls, .ppt and .pps files currently (extensions are matched case-insensitively).
 
 **For the "x-files..." (as in PPTX, XLSX, DOCX):**
 

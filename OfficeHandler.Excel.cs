@@ -48,6 +48,14 @@ public class ExcelHandler : OfficeHandler
             catch
             {
                 Console.WriteLine(value: "-- Save failed for " + origFileName);
+                try
+                {
+                    excelWbk.Close(SaveChanges: false);
+                }
+                catch
+                {
+                    // ignored -- already closed
+                }
             }
 
             if (savedOk)
@@ -71,7 +79,7 @@ public class ExcelHandler : OfficeHandler
     {
         FileInfo fi = new(fileName: fileNameWithPath);
         Workbook excelWbk = null;
-        if (!fi.Name.Contains(value: "~$") && fi.Extension == ".xls")
+        if (!fi.Name.Contains(value: "~$") && fi.Extension.Equals(value: ".xls", comparisonType: StringComparison.OrdinalIgnoreCase))
             try
             {
                 Console.WriteLine(value: "Processing " + fileNameWithPath);
@@ -104,7 +112,7 @@ public class ExcelHandler : OfficeHandler
 
     public void QuitApp()
     {
-        _excelApp.Quit();
+        _excelApp?.Quit();
         Console.WriteLine(value: "Excel files done");
     }
 }

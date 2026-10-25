@@ -27,7 +27,7 @@ public class PowerPointHandler : OfficeHandler
         }
         catch
         {
-            ProgramHelpers.ExitWithMessage(exitReason: ExitReasons.ExcelNotInstalled);
+            ProgramHelpers.ExitWithMessage(exitReason: ExitReasons.PowerpointNotInstalled);
         }
 
         return _powerPointApp;
@@ -47,6 +47,14 @@ public class PowerPointHandler : OfficeHandler
         catch
         {
             Console.WriteLine(value: "-- Save failed for " + origFileName);
+            try
+            {
+                powerPointPres.Close();
+            }
+            catch
+            {
+                // ignored -- already closed
+            }
         }
 
         if (savedOk)
@@ -64,7 +72,8 @@ public class PowerPointHandler : OfficeHandler
     {
         FileInfo fi = new(fileName: fileNameWithPath);
         Presentation powerPointPres = null;
-        if (!fi.Name.Contains(value: "~$") && (fi.Extension == ".ppt" || fi.Extension == ".pps"))
+        if (!fi.Name.Contains(value: "~$") && (fi.Extension.Equals(value: ".ppt", comparisonType: StringComparison.OrdinalIgnoreCase) ||
+         fi.Extension.Equals(value: ".pps", comparisonType: StringComparison.OrdinalIgnoreCase)))
             try
             {
                 Console.WriteLine(value: "Processing " + fileNameWithPath);
@@ -109,7 +118,7 @@ public class PowerPointHandler : OfficeHandler
 
     public void QuitApp()
     {
-        _powerPointApp.Quit();
+        _powerPointApp?.Quit();
         Console.WriteLine(value: "PowerPoint files done");
     }
 }

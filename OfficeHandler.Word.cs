@@ -44,7 +44,7 @@ public class WordHandler : OfficeHandler
         string newFileName = null;
         if (wordDoc.CompatibilityMode < 15)
         {
-            if (wordDoc.Name.EndsWith(value: ".doc")) // super old
+            if (wordDoc.Name.EndsWith(value: ".doc", comparisonType: StringComparison.OrdinalIgnoreCase)) // super old
             {
                 bool savedOk = false;
                 try
@@ -59,6 +59,7 @@ public class WordHandler : OfficeHandler
                 catch
                 {
                     Console.WriteLine(value: "-- Save failed for " + origFileName);
+                    CloseQuietly(wordDoc: wordDoc);
                 }
 
                 if (savedOk)
@@ -67,12 +68,20 @@ public class WordHandler : OfficeHandler
             }
             else // basically this is stuff like version 2007 and generally "early" x-format files.
             {
-                newFileName = SaveActualFile(wordDoc: wordDoc, retainFileName: true,
-                    savedOk: out _);
-                Console.WriteLine(value: "-- Re-saved file as version 2016 (current).");
+                try
+                {
+                    newFileName = SaveActualFile(wordDoc: wordDoc, retainFileName: true,
+                        savedOk: out _);
+                    Console.WriteLine(value: "-- Re-saved file as version 2016 (current).");
+                }
+                catch
+                {
+                    Console.WriteLine(value: "-- Save failed for " + origFileName);
+                    CloseQuietly(wordDoc: wordDoc);
+                }
             }
 
-            File.SetLastWriteTime(path: newFileName, lastWriteTime: LastModified);
+            if (newFileName != null) File.SetLastWriteTime(path: newFileName, lastWriteTime: LastModified);
         }
         // non-legacy // compatibility-mode file
         else
@@ -86,7 +95,8 @@ public class WordHandler : OfficeHandler
     {
         FileInfo fi = new(fileName: fileNameWithPath);
         Document wordDoc = null;
-        if (!fi.Name.Contains(value: "~$") && fi.Extension.Contains(value: ".doc"))
+        if (!fi.Name.Contains(value: "~$") &&
+            fi.Extension.StartsWith(value: ".doc", comparisonType: StringComparison.OrdinalIgnoreCase))
             try
             {
                 Console.WriteLine(value: "Processing " + fileNameWithPath);
@@ -123,9 +133,21 @@ public class WordHandler : OfficeHandler
         return newFileName;
     }
 
+    private static void CloseQuietly(Document wordDoc)
+    {
+        try
+        {
+            wordDoc.Close(SaveChanges: false);
+        }
+        catch
+        {
+            // ignored -- already closed
+        }
+    }
+
     internal void QuitApp()
     {
-        _wordApp.Quit(SaveChanges: false);
+        _wordApp?.Quit(SaveChanges: false);
         Console.WriteLine(value: "Word files done");
     }
 }
